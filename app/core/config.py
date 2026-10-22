@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     silogtran_base_url: str = "https://construproyec.colombiasoftware.net"
-    silogtran_login_url: str = "https://construproyec.colombiasoftware.net/index.php?page=Login"
+    silogtran_login_url: str = "https://construproyec.colombiasoftware.net/index.php?page=LoginPage"
     silogtran_log_url: str = (
         "https://construproyec.colombiasoftware.net/index.php?page=Maestros.Interfaz.BuscarLogInterfaz"
     )

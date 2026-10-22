@@ -114,3 +114,25 @@ async def test_login_error_carries_diagnostic_without_secrets():
     d = e.value.details
     assert d["title"] == "Hola" and d["forms"] == 0 and d["scripts"] == 1 and "secreto" not in str(d)
     await c.aclose()
+
+
+async def test_login_with_real_login_page_structure():
+    from pathlib import Path
+
+    page = (Path(__file__).parent / "fixtures" / "login_real.html").read_text(encoding="utf-8")
+    seen = {}
+
+    def h(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST":
+            seen["body"] = request.content.decode()
+            return httpx.Response(200, text=LOGFORM)
+        return httpx.Response(200, text=page)
+
+    c = SilogtranClient(settings(), transport=httpx.MockTransport(h))
+    await c.login()
+    body = seen["body"]
+    assert "MainModule%24Usuario=u" in body and "MainModule%24Clave=secreto" in body
+    assert "BtnIngresar=Iniciar" in body and "BtnRecordar" not in body.replace("IDLockHidden_ctl0_MainModule_BtnRecordar", "")
+    assert "IDLockHidden_ctl0_MainModule_BtnIngresar=true" in body
+    assert "PRADO_POSTBACK_TARGET=ctl0%24MainModule%24BtnIngresar" in body
+    await c.aclose()
