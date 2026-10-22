@@ -18,11 +18,11 @@ log = logging.getLogger("app")
 STATIC = Path(__file__).parent / "static"
 
 
-def error_body(code: str, message: str, request: Request) -> dict:
-    return {
-        "success": False,
-        "error": {"code": code, "message": message, "request_id": getattr(request.state, "request_id", "")},
-    }
+def error_body(code: str, message: str, request: Request, details: dict | None = None) -> dict:
+    err = {"code": code, "message": message, "request_id": getattr(request.state, "request_id", "")}
+    if details:
+        err["diagnostico"] = details
+    return {"success": False, "error": err}
 
 
 @asynccontextmanager
@@ -52,7 +52,7 @@ async def request_id_mw(request: Request, call_next):
 
 @app.exception_handler(AppError)
 async def app_error_handler(request: Request, exc: AppError):
-    return JSONResponse(error_body(exc.code, exc.message, request), status_code=exc.status_code)
+    return JSONResponse(error_body(exc.code, exc.message, request, exc.details), status_code=exc.status_code)
 
 
 @app.exception_handler(Exception)

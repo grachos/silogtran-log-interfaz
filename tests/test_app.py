@@ -104,3 +104,13 @@ def test_masking():
     rec = logging.LogRecord("x", 20, "", 0, "password=abc123 x-api-key: K9", (), None)
     MaskingFilter().filter(rec)
     assert "abc123" not in rec.msg and "K9" not in rec.msg
+
+
+async def test_login_error_carries_diagnostic_without_secrets():
+    page = "<html><head><title>Hola</title></head><body><div>Cargando</div><script>1</script></body></html>"
+    c = SilogtranClient(settings(), transport=httpx.MockTransport(lambda r: httpx.Response(200, text=page)))
+    with pytest.raises(Exception) as e:
+        await c.login()
+    d = e.value.details
+    assert d["title"] == "Hola" and d["forms"] == 0 and d["scripts"] == 1 and "secreto" not in str(d)
+    await c.aclose()

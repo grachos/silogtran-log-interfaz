@@ -136,3 +136,23 @@ def describe_controls(form: Tag) -> list[dict]:
             item["text"] = button_text(c)[:40]
         out.append(item)
     return out
+
+
+def page_summary(html: str, url: str = "", status: int | None = None) -> dict:
+    """Resumen estructural para diagnostico (sin valores de campos ni cookies)."""
+    soup = soup_of(html)
+    forms = soup.find_all("form")
+    return {
+        "status": status,
+        "url_final": url,
+        "title": page_title(soup),
+        "bytes": len(html),
+        "forms": len(forms),
+        "iframes": len(soup.find_all("iframe")),
+        "scripts": len(soup.find_all("script")),
+        "inputs": [
+            {"type": (c.get("type") or c.name).lower(), "name": control_name(c)[:80]}
+            for c in soup.find_all(["input", "select", "textarea", "button"])
+        ][:40],
+        "texto_inicio": re.sub(r"\s+", " ", soup.get_text(" ", strip=True))[:300],
+    }

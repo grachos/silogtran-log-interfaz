@@ -2,9 +2,10 @@ class AppError(Exception):
     code = "INTERNAL_ERROR"
     status_code = 500
 
-    def __init__(self, message: str, code: str | None = None, status_code: int | None = None):
+    def __init__(self, message: str, code: str | None = None, status_code: int | None = None, details: dict | None = None):
         super().__init__(message)
         self.message = message
+        self.details = details
         if code:
             self.code = code
         if status_code:

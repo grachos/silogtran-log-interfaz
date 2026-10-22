@@ -31,6 +31,8 @@ class SilogtranClient:
         await self.http.aclose()
 
     # -- HTTP -----------------------------------------------------------------
+    last_summary: dict | None = None
+
     async def _request(self, method: str, url: str, **kw) -> tuple[str, str]:
         try:
             r = await self.http.request(method, url, **kw)
@@ -38,8 +40,10 @@ class SilogtranClient:
             raise SilogtranTimeout("Silogtran no respondio a tiempo.") from e
         except httpx.HTTPError as e:
             raise SessionUnavailable("No se pudo contactar a Silogtran.") from e
-        self.trace.append(f"{method} {r.status_code} {p.page_title(p.soup_of(p.decode_html(r.content)))[:50]}")
-        return p.decode_html(r.content), str(r.url)
+        html = p.decode_html(r.content)
+        self.trace.append(f"{method} {r.status_code} {p.page_title(p.soup_of(html))[:50]}")
+        self.last_summary = p.page_summary(html, str(r.url), r.status_code)
+        return html, str(r.url)
 
     async def _submit(self, html: str, url: str, extra: dict[str, str], button=None) -> tuple[str, str]:
         form = p.main_form(p.soup_of(html))
@@ -69,12 +73,12 @@ class SilogtranClient:
         form = p.main_form(p.soup_of(html))
         pwd = form.find("input", attrs={"type": "password"}) if form else None
         if form is None or pwd is None:
-            raise UnexpectedFormat("No se encontro el formulario de login.")
+            raise UnexpectedFormat("No se encontro el formulario de login.", details=self.last_summary)
         user = next(
             (c for c in pwd.find_all_previous("input") if (c.get("type") or "text").lower() == "text"), None
         )
         if user is None:
-            raise UnexpectedFormat("No se encontro el campo de usuario.")
+            raise UnexpectedFormat("No se encontro el campo de usuario.", details=self.last_summary)
         btn = next((b for b in p.buttons(form) if p.norm(p.button_text(b)) in LOGIN_BUTTONS), None)
         btn = btn or (p.buttons(form) or [None])[0]
         html, url = await self._submit(
@@ -84,10 +88,10 @@ class SilogtranClient:
             btn,
         )
         if self.expired(html) and not self._cost_center_select(html):
-            raise SessionUnavailable("Silogtran rechazo el login.")
+            raise SessionUnavailable("Silogtran rechazo el login.", details=self.last_summary)
         html, url = await self._pick_cost_center(html, url)
         if self.expired(html):
-            raise SessionUnavailable("Silogtran rechazo el login.")
+            raise SessionUnavailable("Silogtran rechazo el login.", details=self.last_summary)
         self.logged_at = time.monotonic()
         log.info("login ok; pasos=%s", self.trace)
 

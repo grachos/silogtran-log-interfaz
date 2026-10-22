@@ -28,4 +28,4 @@ curl -X POST localhost:8000/api/v1/diagnostico/formulario -H "Authorization: Bea
 
 ## Errores
 
-`{"success": false, "error": {"code", "message", "request_id"}}` — 401 token, 502 formato inesperado, 503 sesión no disponible, 504 timeout.
+`{"success": false, "error": {"code", "message", "request_id", "diagnostico"?}}` (el bloque `diagnostico` solo en fallos de login: título, formularios y tipos/nombres de controles de la página recibida, sin valores) — 401 token, 502 formato inesperado, 503 sesión no disponible, 504 timeout.
