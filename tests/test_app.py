@@ -14,7 +14,7 @@ LOGIN = """<html><head><title>Login</title></head><body><form action="index.php?
 CENTRO = """<html><head><title>Centro</title></head><body><form action="index.php?page=Centro" method="post">
 <input type="hidden" name="PRADO_PAGESTATE" value="s2">
 <select name="ctl0$cc"><option value="1">OTRO</option><option value="7">CONSTRUPROYEC-PRINCIPAL</option></select>
-<input type="submit" name="ctl0$ok" value="Continuar"></form></body></html>"""
+<input type="submit" name="ctl0$salir" value="Salir"><input type="submit" name="ctl0$ok" value="Continuar"></form></body></html>"""
 LOGFORM = """<html><head><title>Log</title></head><body>
 <div id="menu"><input type="text" name="menu$buscar" placeholder="Buscar"><span>Financiero</span></div>
 <form action="index.php?page=Maestros.Interfaz.BuscarLogInterfaz" method="post">
@@ -35,7 +35,7 @@ def handler(request: httpx.Request) -> httpx.Response:
         assert b"ctl0%24user=u" in request.content and b"ctl0%24go=Ingresar" in request.content
         return httpx.Response(200, text=CENTRO)
     if request.method == "POST" and "page=Centro" in q:
-        assert b"ctl0%24cc=7" in request.content
+        assert b"ctl0%24cc=7" in request.content and b"ctl0%24ok=Continuar" in request.content and b"salir" not in request.content
         return httpx.Response(200, text=LOGFORM)
     return httpx.Response(200, text=LOGFORM)
 

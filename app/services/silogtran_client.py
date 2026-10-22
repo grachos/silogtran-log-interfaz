@@ -113,7 +113,7 @@ class SilogtranClient:
         target = p.norm(self.s.silogtran_cost_center)
         value = next(v for v, txt in p.select_options(sel) if target in p.norm(txt))
         form = p.main_form(p.soup_of(html))
-        btn = (p.buttons(form) or [None])[0]
+        btn = p.find_button(form, text="Continuar") or (p.buttons(form) or [None])[0]
         return await self._submit(html, url, {p.control_name(sel): value}, btn)
 
     async def ensure_session(self) -> None:
