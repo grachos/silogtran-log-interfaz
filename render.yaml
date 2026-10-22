@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: silogtran-log-interfaz
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -k uvicorn.workers.UvicornWorker -w 1 -b 0.0.0.0:$PORT app.main:app
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.0
+      - key: API_TOKEN
+        generateValue: true
+      - key: ADMIN_API_KEY
+        generateValue: true
+      - key: SILOGTRAN_USERNAME
+        sync: false
+      - key: SILOGTRAN_PASSWORD
+        sync: false
+      - key: TARGET_API_KEY
+        sync: false

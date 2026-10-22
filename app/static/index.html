@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Log de Interfaz Silogtran</title>
+<style>body{font-family:system-ui;max-width:900px;margin:2rem auto;padding:0 1rem}input{padding:.4rem;width:20rem}button{padding:.4rem 1rem}pre{background:#f4f4f4;padding:1rem;overflow:auto;max-height:60vh}</style></head>
+<body>
+<h1>Log de Interfaz Silogtran</h1>
+<p>Versión diagnóstica: abre el formulario del log y muestra su estructura (sin datos sensibles).</p>
+<label>Token <input id="t" type="password"></label>
+<button id="go">Diagnosticar formulario</button>
+<pre id="out">—</pre>
+<script>
+const t=document.getElementById('t');try{t.value=sessionStorage.getItem('tk')||''}catch(e){}
+document.getElementById('go').onclick=async()=>{
+  try{sessionStorage.setItem('tk',t.value)}catch(e){}
+  const o=document.getElementById('out');o.textContent='Consultando…';
+  try{const r=await fetch('/api/v1/diagnostico/formulario',{method:'POST',headers:{Authorization:'Bearer '+t.value}});
+  o.textContent=JSON.stringify(await r.json(),null,2)}catch(e){o.textContent='Error de red'}};
+</script></body></html>
