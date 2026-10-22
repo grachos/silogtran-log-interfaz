@@ -29,3 +29,9 @@ curl -X POST localhost:8000/api/v1/diagnostico/formulario -H "Authorization: Bea
 ## Errores
 
 `{"success": false, "error": {"code", "message", "request_id", "diagnostico"?}}` (el bloque `diagnostico` solo en fallos de login: título, formularios y tipos/nombres de controles de la página recibida, sin valores) — 401 token, 502 formato inesperado, 503 sesión no disponible, 504 timeout.
+
+## Bloqueo por firewall (WAF) de Silogtran — confirmado 2026-10-22
+
+Desde Render, `index.php?page=LoginPage` responde **HTTP 202** con `x-amzn-waf-action: challenge` y una página que exige JavaScript ("JavaScript is disabled…"), sin formulario. Es el AWS WAF de Silogtran tratando al cliente como no humano; se probó con cabeceras de navegador (Chrome) y sigue igual, así que lo decide la IP/huella, no el `User-Agent`.
+
+No se implementa ninguna forma de resolver el desafío: es un control de seguridad del proveedor. La solución es que **Colombia Software / Elogia permita (allowlist) la IP de salida del servicio** o cree una excepción para esta cuenta. Las IP de salida del plan gratuito de Render (región Oregon) son compartidas y se ven en el panel del servicio, *Connect → Outbound*; una IP estable requiere hospedar en un servidor con IP fija.
