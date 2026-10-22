@@ -1,0 +1,22 @@
+name: Diagnostico Silogtran
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnostico:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt
+      - run: python -m playwright install --with-deps --only-shell chromium
+      - name: Diagnosticar formulario del log
+        env:
+          SILOGTRAN_USERNAME: ${{ secrets.SILOGTRAN_USERNAME }}
+          SILOGTRAN_PASSWORD: ${{ secrets.SILOGTRAN_PASSWORD }}
+          SILOGTRAN_LOGIN_MODE: auto
+        run: python -m scripts.diagnostico

@@ -34,3 +34,7 @@ class SessionUnavailable(AppError):
 
 class SilogtranTimeout(AppError):
     code, status_code = "SILOGTRAN_TIMEOUT", 504
+
+
+class WafChallenge(AppError):
+    code, status_code = "SILOGTRAN_WAF_CHALLENGE", 503

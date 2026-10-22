@@ -7,8 +7,9 @@ from urllib.parse import urljoin
 import httpx
 
 from app.core.config import Settings
-from app.core.exceptions import AppError, SessionUnavailable, SilogtranTimeout, UnexpectedFormat
+from app.core.exceptions import AppError, SessionUnavailable, SilogtranTimeout, UnexpectedFormat, WafChallenge
 from app.services import prado_parser as p
+from app.services.browser_session import browser_login
 
 log = logging.getLogger(__name__)
 LOGIN_BUTTONS = ("ingresar", "entrar", "iniciar sesion", "login", "aceptar", "acceder")
@@ -57,6 +58,8 @@ class SilogtranClient:
             if k.lower() in ("server", "content-type", "content-length", "location", "via", "retry-after")
             or k.lower().startswith(("x-amzn", "cf-", "x-sucuri", "x-iinfo", "x-cdn", "x-cache"))
         }
+        if r.headers.get("x-amzn-waf-action"):
+            raise WafChallenge("El firewall de Silogtran exige un navegador.", details=self.last_summary)
         return html, str(r.url)
 
     async def _submit(self, html: str, url: str, extra: dict[str, str], button=None) -> tuple[str, str]:
@@ -83,6 +86,30 @@ class SilogtranClient:
         if not self.s.silogtran_username or not self.s.silogtran_password:
             raise SessionUnavailable("Credenciales de Silogtran no configuradas.")
         self.trace = []
+        mode = self.s.silogtran_login_mode
+        if mode != "browser":
+            try:
+                return await self._http_login()
+            except WafChallenge:
+                if mode == "http":
+                    raise
+                self.trace.append("WAF challenge -> navegador")
+        await self._browser_login()
+
+    async def _browser_login(self) -> None:
+        cookies, user_agent = await browser_login(self.s)
+        self.http.cookies.clear()
+        for c in cookies:
+            self.http.cookies.set(c["name"], c["value"], domain=c.get("domain", ""), path=c.get("path", "/"))
+        # Mismo User-Agent que el navegador: el token del WAF se emitio para ese cliente.
+        self.http.headers["User-Agent"] = user_agent
+        html, _ = await self._request("GET", self.s.silogtran_log_url)
+        if self.expired(html):
+            raise SessionUnavailable("La sesion del navegador no quedo iniciada.", details=self.last_summary)
+        self.logged_at = time.monotonic()
+        log.info("login (navegador) ok; pasos=%s", self.trace)
+
+    async def _http_login(self) -> None:
         html, url = await self._request("GET", self.s.silogtran_login_url)
         form = p.main_form(p.soup_of(html))
         pwd = form.find("input", attrs={"type": "password"}) if form else None
@@ -156,8 +183,11 @@ class SilogtranClient:
         """Estructura del formulario del log, sin valores ni datos sensibles."""
         async with self.lock:
             await self.ensure_session()
-            html, url = await self._request("GET", self.s.silogtran_log_url)
-            if self.expired(html):
+            try:
+                html, url = await self._request("GET", self.s.silogtran_log_url)
+            except WafChallenge:
+                html = ""  # el token del WAF vencio: nuevo login
+            if not html or self.expired(html):
                 await self.login()
                 html, url = await self._request("GET", self.s.silogtran_log_url)
             soup = p.soup_of(html)

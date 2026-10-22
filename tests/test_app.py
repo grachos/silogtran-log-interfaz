@@ -140,9 +140,10 @@ async def test_login_with_real_login_page_structure():
 
 async def test_empty_202_reports_headers_for_waf_diagnosis():
     resp = httpx.Response(202, content=b"", headers={"x-amzn-waf-action": "challenge", "set-cookie": "s=1"})
-    c = SilogtranClient(settings(), transport=httpx.MockTransport(lambda r: resp))
+    c = SilogtranClient(settings(silogtran_login_mode="http"), transport=httpx.MockTransport(lambda r: resp))
     with pytest.raises(Exception) as e:
         await c.login()
+    assert e.value.code == "SILOGTRAN_WAF_CHALLENGE"
     d = e.value.details
     assert d["status"] == 202 and d["bytes"] == 0
     assert d["headers"] == {"x-amzn-waf-action": "challenge"}

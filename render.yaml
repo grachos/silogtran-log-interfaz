@@ -1,14 +1,12 @@
 services:
   - type: web
     name: silogtran-log-interfaz
-    runtime: python
+    # Docker: el login necesita Chromium (Playwright) y sus librerias de sistema.
+    runtime: docker
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -k uvicorn.workers.UvicornWorker -w 1 -b 0.0.0.0:$PORT app.main:app
+    dockerfilePath: ./Dockerfile
     healthCheckPath: /health
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.13.0
       - key: API_TOKEN
         generateValue: true
       - key: ADMIN_API_KEY

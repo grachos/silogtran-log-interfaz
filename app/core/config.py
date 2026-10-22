@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     silogtran_cost_center: str = "CONSTRUPROYEC-PRINCIPAL"
     silogtran_keepalive_seconds: int = 240
     silogtran_session_lifetime_seconds: int = 900
+    # http: solo cliente HTTP; browser: login con Playwright; auto: HTTP y, si el WAF
+    # de Silogtran exige JavaScript, Playwright.
+    silogtran_login_mode: str = "auto"
+    playwright_executable_path: str = ""
 
     # Adaptadores: nombre real del control PRADO (vacio = deteccion por etiqueta).
     silogtran_log_interfaz_field: str = ""
