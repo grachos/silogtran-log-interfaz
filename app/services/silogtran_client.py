@@ -21,7 +21,14 @@ class SilogtranClient:
             follow_redirects=True,
             timeout=settings.request_timeout_seconds,
             transport=transport,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; silogtran-log-interfaz)"},
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+                ),
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "es-CO,es;q=0.9,en;q=0.8",
+            },
         )
         self.lock = asyncio.Lock()  # la sesion PRADO es por usuario: una consulta a la vez
         self.logged_at = 0.0
@@ -43,6 +50,13 @@ class SilogtranClient:
         html = p.decode_html(r.content)
         self.trace.append(f"{method} {r.status_code} {p.page_title(p.soup_of(html))[:50]}")
         self.last_summary = p.page_summary(html, str(r.url), r.status_code)
+        # Cabeceras utiles para detectar un WAF/CDN (nunca cookies ni autorizacion).
+        self.last_summary["headers"] = {
+            k: v[:80]
+            for k, v in r.headers.items()
+            if k.lower() in ("server", "content-type", "content-length", "location", "via", "retry-after")
+            or k.lower().startswith(("x-amzn", "cf-", "x-sucuri", "x-iinfo", "x-cdn", "x-cache"))
+        }
         return html, str(r.url)
 
     async def _submit(self, html: str, url: str, extra: dict[str, str], button=None) -> tuple[str, str]:
